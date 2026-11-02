@@ -2,47 +2,47 @@
 
 ## Processo
 
-- Alvo: `<cliente>\GameGuard.des`, executável PE x86.
-- `GameGuard\GameGuard.des` é outro componente.
-- O GME não deve ser alterado. Não exigir DLL auxiliar, launcher, Python ou chave privada no cliente.
-- Não emitir prontidão ou sucesso de autenticação sem confirmar o contrato real.
+- Alvo: `<cliente>\GameGuard.des`, executÃ¡vel PE x86.
+- `GameGuard\GameGuard.des` Ã© outro componente.
+- O GME nÃ£o deve ser alterado. NÃ£o exigir DLL auxiliar, launcher, Python ou chave privada no cliente.
+- NÃ£o emitir prontidÃ£o ou sucesso de autenticaÃ§Ã£o sem confirmar o contrato real.
 
 ## Perfis do SDK
 
-| Perfil estrutural | Objeto | Contexto | Comando local | Evento | Autenticação |
+| Perfil estrutural | Objeto | Contexto | Comando local | Evento | AutenticaÃ§Ã£o |
 |---|---:|---:|---:|---:|---|
 | Legado PH | `0x1288` | `+0x105c` | `0x616` | `0x3f8` | CSAuth1 |
 | Legado | `0x1288` | `+0x105c` | `0x619` | `0x3f9` | CSAuth2 |
 | Novo | `0x2b98` | `+0x1468` | `0x619` | `0x3f9` | CSAuth2 |
 
-São três perfis de layout/comando e duas famílias de autenticação; os rótulos não são números oficiais de SDK. A seleção no servidor permanece explícita. O comprimento do pacote isoladamente não identifica a família.
+SÃ£o trÃªs perfis de layout/comando e duas famÃ­lias de autenticaÃ§Ã£o; os rÃ³tulos nÃ£o sÃ£o nÃºmeros oficiais de SDK. A seleÃ§Ã£o no servidor permanece explÃ­cita. O comprimento do pacote isoladamente nÃ£o identifica a famÃ­lia.
 
-Para `0x619`, o argumento observado é um endereço para 16 bytes. Para `0x616`, é um DWORD no quadro de comando. No canal de rede do jogo, ambos podem produzir um corpo de 16 bytes no `0x1016`, com tratamentos diferentes. Não presumir que todo IPC passe pelo auxiliar.
+Para `0x619`, o argumento observado Ã© um endereÃ§o para 16 bytes. Para `0x616`, Ã© um DWORD no quadro de comando. No canal de rede do jogo, ambos podem produzir um corpo de 16 bytes no `0x1016`, com tratamentos diferentes. NÃ£o presumir que todo IPC passe pelo auxiliar.
 
 ## Arquivos assinados
 
-O rodapé legado é little-endian: payload, nome ASCII terminado em NUL, assinatura RSA de 64 bytes, seguido por quatro DWORDs: `0x32812622`, tamanho do nome, tamanho da assinatura e `0x32812621`. A assinatura é RSA/MD5 sobre payload e nome. `gg_parse_footer` apenas valida estrutura; `gg_verify_signature` exige um `PUBLICKEYBLOB` explícito e executa a verificação. A chave privada não é parte do projeto nem do cliente.
+O rodapÃ© legado Ã© little-endian: payload, nome ASCII terminado em NUL, assinatura RSA de 64 bytes, seguido por quatro DWORDs: `0x32812622`, tamanho do nome, tamanho da assinatura e `0x32812621`. A assinatura Ã© RSA/MD5 sobre payload e nome. `gg_parse_footer` apenas valida estrutura; `gg_verify_signature` exige um `PUBLICKEYBLOB` explÃ­cito e executa a verificaÃ§Ã£o. A chave privada nÃ£o Ã© parte do projeto nem do cliente.
 
-CRC32 usa polinômio refletido `0xedb88320`, inicialização e finalização XOR `0xffffffff`. Os dados abrangidos por cada CRC devem ser definidos por cada consumidor.
+CRC32 usa polinÃ´mio refletido `0xedb88320`, inicializaÃ§Ã£o e finalizaÃ§Ã£o XOR `0xffffffff`. Os dados abrangidos por cada CRC devem ser definidos por cada consumidor.
 
 ## Pendente
 
-Contrato completo de inicialização, modo de lançamento e finalização do GameMon, sincronização, códigos de retorno, controle de integridade e encaminhamento IPC. O protótipo não implementa nem simula esses comportamentos.
+Contrato completo de inicializaÃ§Ã£o, modo de lanÃ§amento e finalizaÃ§Ã£o do GameMon, sincronizaÃ§Ã£o, cÃ³digos de retorno, controle de integridade e encaminhamento IPC. O protÃ³tipo nÃ£o implementa nem simula esses comportamentos.
 
-## Argumento de inicialização do v584
+## Argumento de inicializaÃ§Ã£o do v584
 
-O SDK v584 transforma o texto de inicialização em um quadro binário e o representa na linha de comando com cada byte no formato `\xNN`. O quadro contém um byte de formato (`1`), um byte usado como semente, dois bytes de comprimento e o conteúdo codificado. O algoritmo é uma transformação reversível, não uma assinatura nem uma garantia de integridade.
+O SDK v584 transforma o texto de inicializaÃ§Ã£o em um quadro binÃ¡rio e o representa na linha de comando com cada byte no formato `\xNN`. O quadro contÃ©m um byte de formato (`1`), um byte usado como semente, dois bytes de comprimento e o conteÃºdo codificado. O algoritmo Ã© uma transformaÃ§Ã£o reversÃ­vel, nÃ£o uma assinatura nem uma garantia de integridade.
 
-`gg_decode_launch_frame` recebe a representação `\xNN`, verifica o formato e o comprimento e devolve os bytes decodificados. Entradas truncadas, caracteres inválidos e conteúdo maior que o limite implementado são recusados. O conteúdo pode conter dados da sessão e não deve ser gravado em logs. No v584, a rotina de formatação usa um campo decimal, uma string e cinco campos hexadecimais. A semântica de cada campo ainda precisa ser confirmada antes de ser usada na inicialização do monitor.
+`gg_decode_launch_frame` recebe a representaÃ§Ã£o `\xNN`, verifica o formato e o comprimento e devolve os bytes decodificados. Entradas truncadas, caracteres invÃ¡lidos e conteÃºdo maior que o limite implementado sÃ£o recusados. O conteÃºdo pode conter dados da sessÃ£o e nÃ£o deve ser gravado em logs. No v584, a rotina de formataÃ§Ã£o usa um campo decimal, uma string e cinco campos hexadecimais. A semÃ¢ntica de cada campo ainda precisa ser confirmada antes de ser usada na inicializaÃ§Ã£o do monitor.
 
-## Configuração observada
+## ConfiguraÃ§Ã£o observada
 
-Na captura de memória do auxiliar associada ao cliente PH v500, a rotina `0x407100` verifica e lê o INI da identidade recebida. As chaves observadas na seção `GAMEMON` incluem `UPDATE_SERVER`, `UPDATE_PATH`, `BACKUP_SERVER`, `BACKUP_PATH`, `NO_UPDATE`, `NO_SPLASH`, `UP_SPLASH` e `NO_USE_SCAN`. A rotina compara a identidade configurada com a identidade informada pelo jogo; a captura isolada não prova que o GameMon aceite outro nome ou outra identidade. O caminho para padronização de um único INI precisa preservar essa associação e ser validado no GameMon.
+Na captura de memÃ³ria do auxiliar associada ao cliente PH v500, a rotina `0x407100` verifica e lÃª o INI da identidade recebida. As chaves observadas na seÃ§Ã£o `GAMEMON` incluem `UPDATE_SERVER`, `UPDATE_PATH`, `BACKUP_SERVER`, `BACKUP_PATH`, `NO_UPDATE`, `NO_SPLASH`, `UP_SPLASH` e `NO_USE_SCAN`. A rotina compara a identidade configurada com a identidade informada pelo jogo; a captura isolada nÃ£o prova que o GameMon aceite outro nome ou outra identidade. O caminho para padronizaÃ§Ã£o de um Ãºnico INI precisa preservar essa associaÃ§Ã£o e ser validado no GameMon.
 
-## Sequ�ncia de inicializa��o observada na v584
+## Sequência de inicialização observada na v584
 
-O SDK no GME cria o `GameGuard.des` da raiz com heran�a de handles ativada e aguarda o evento passado ao auxiliar ou a finaliza��o do processo. Ap�s a etapa do auxiliar, o SDK inicia outro processo com heran�a de handles desativada e cria��o suspensa. A rotina de inicializa��o do SDK termina com `0x755` apenas ap�s as demais etapas e a comunica��o com o monitor.
+O SDK no GME cria o `GameGuard.des` da raiz com herança de handles ativada e aguarda o evento passado ao auxiliar ou a finalização do processo. Após a etapa do auxiliar, o SDK inicia outro processo com herança de handles desativada e criação suspensa. A rotina de inicialização do SDK termina com `0x755` apenas após as demais etapas e a comunicação com o monitor.
 
-A linha de comando do auxiliar pode conter somente o quadro `\xNN`, sem nome de execut�vel precedendo-o. A entrada do programa deve considerar esse quadro tamb�m em `argv[0]`.
+A linha de comando do auxiliar pode conter somente o quadro `\xNN`, sem nome de executável precedendo-o. A entrada do programa deve considerar esse quadro também em `argv[0]`.
 
-O conte�do do INI � cifrado com RC4 por uma chave derivada de MD5 usando a CryptoAPI `PROV_RSA_FULL`; a verifica��o do rodap� e da assinatura deve ocorrer antes da descriptografia. `gg_decrypt_ini_payload` n�o verifica a assinatura por si s�.
+O conteúdo do INI é cifrado com RC4 por uma chave derivada de MD5 usando a CryptoAPI `PROV_RSA_FULL`; a verificação do rodapé e da assinatura deve ocorrer antes da descriptografia. `gg_decrypt_ini_payload` não verifica a assinatura por si só.

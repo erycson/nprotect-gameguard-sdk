@@ -29,5 +29,5 @@ exit /b %errorlevel%
 :build
 if not exist "build\%~1" mkdir "build\%~1"
 echo Compilando %~1...
-"%CC%" -m32 -std=c11 -Wall -Wextra -Werror -DGG_AUTH_MODE=%~2 -Imodules/root-helper/include modules/root-helper/src/sdk_profile.c modules/root-helper/src/footer.c modules/root-helper/src/signature_win32.c modules/root-helper/src/launch_frame.c modules/root-helper/src/startup_parameters.c modules/root-helper/src/ini_win32.c modules/root-helper/src/main.c -ladvapi32 -o "build/%~1/GameGuard.des"
+"%CC%" -m32 -std=c11 -Wall -Wextra -Werror -DGG_AUTH_MODE=%~2 -Imodules/root-helper/include modules/root-helper/src/sdk_profile.c modules/root-helper/src/footer.c modules/root-helper/src/signature_win32.c modules/root-helper/src/launch_frame.c modules/root-helper/src/startup_parameters.c modules/root-helper/src/ini_win32.c modules/root-helper/src/config.c modules/root-helper/src/main.c -ladvapi32 -o "build/%~1/GameGuard.des"
 exit /b %errorlevel%
