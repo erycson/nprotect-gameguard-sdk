@@ -17,6 +17,20 @@ typedef struct {
     unsigned matches;
 } gg_detection;
 
+/* Build modes constrain which authentication families can be selected. */
+#define GG_AUTH_HYBRID 0
+#define GG_AUTH_CSAUTH1 1
+#define GG_AUTH_CSAUTH2 2
+
+#ifndef GG_AUTH_MODE
+#define GG_AUTH_MODE GG_AUTH_HYBRID
+#endif
+
+#if GG_AUTH_MODE != GG_AUTH_HYBRID && GG_AUTH_MODE != GG_AUTH_CSAUTH1 &&                           \
+    GG_AUTH_MODE != GG_AUTH_CSAUTH2
+#error Unsupported GG_AUTH_MODE
+#endif
+
 /* The result is unknown unless exactly one supported wrapper is found. */
 gg_detection gg_detect_sdk(const uint8_t *text, size_t length);
 

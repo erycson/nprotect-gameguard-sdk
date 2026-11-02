@@ -16,9 +16,15 @@ O projeto contÃ©m um detector estrutural de SDK, parser do rodapÃ©, CRC32, verif
 Requer Windows, compilador MinGW-w64 i686 e Python 3 para o teste opcional de capturas. O binÃ¡rio do jogo e os arquivos GameGuard nÃ£o integram o repositÃ³rio.
 
 ```bat
-scripts\build.cmd
+compilar.bat
 scripts\lint.cmd
 .dev\test.cmd
 ```
 
 `CC` pode apontar para `i686-w64-mingw32-gcc.exe`; sem `CC`, os scripts usam `gcc.exe` no PATH. O linter requer `clang-format` (ou `CLANG_FORMAT`) e GCC com `-fanalyzer`. A saÃ­da Ã© gravada em `build/`. Os testes nÃ£o executam imagens de clientes capturadas; `.dev/check-samples.py` lÃª somente suas seÃ§Ãµes `.text`.
+
+## Variantes de compilação
+
+`compilar.bat` oferece um menu para gerar CSAuth1, CSAuth2, híbrido ou todas as variantes. Também aceita `csauth1`, `csauth2`, `hybrid` ou `all` como argumento. As saídas ficam em `build/csauth1/GameGuard.des`, `build/csauth2/GameGuard.des` e `build/hybrid/GameGuard.des`.
+
+O detector das variantes individuais rejeita a outra família; a híbrida aceita as duas. A detecção continua recusando resultados ambíguos. Estas opções não implementam o ciclo de vida ou a autenticação: todas as saídas continuam sendo protótipos que retornam erro.

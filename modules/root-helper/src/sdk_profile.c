@@ -42,7 +42,16 @@ gg_detection gg_detect_sdk(const uint8_t *p, size_t n) {
             }
         }
     }
-    if (r.matches == 1)
+    if (r.matches == 1) {
+#if GG_AUTH_MODE == GG_AUTH_CSAUTH1
+        if (found == GG_PROFILE_CSAUTH1_LEGACY)
+            r.profile = found;
+#elif GG_AUTH_MODE == GG_AUTH_CSAUTH2
+        if (found == GG_PROFILE_CSAUTH2_LEGACY || found == GG_PROFILE_CSAUTH2_MODERN)
+            r.profile = found;
+#else
         r.profile = found;
+#endif
+    }
     return r;
 }
