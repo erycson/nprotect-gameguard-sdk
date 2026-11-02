@@ -31,6 +31,6 @@ Contrato completo de inicialização, modo de lançamento e finalização do Gam
 
 ## Argumento de inicialização do v584
 
-O SDK v584 transforma o texto de inicialização em um quadro binário e o representa como hexadecimal na linha de comando. O quadro contém um byte de formato (`1`), um byte usado como semente, dois bytes de comprimento e o conteúdo codificado. O algoritmo é uma transformação reversível, não uma assinatura nem uma garantia de integridade.
+O SDK v584 transforma o texto de inicialização em um quadro binário e o representa na linha de comando com cada byte no formato `\xNN`. O quadro contém um byte de formato (`1`), um byte usado como semente, dois bytes de comprimento e o conteúdo codificado. O algoritmo é uma transformação reversível, não uma assinatura nem uma garantia de integridade.
 
-`gg_decode_launch_frame` recebe a representação hexadecimal, verifica o formato e o comprimento e devolve os bytes decodificados. Entradas truncadas, caracteres inválidos e conteúdo maior que o limite implementado são recusados. O conteúdo pode conter dados da sessão e não deve ser gravado em logs. Os campos internos e sua semântica ainda precisam ser confirmados em uma execução real antes de serem usados na inicialização do monitor.
+`gg_decode_launch_frame` recebe a representação `\xNN`, verifica o formato e o comprimento e devolve os bytes decodificados. Entradas truncadas, caracteres inválidos e conteúdo maior que o limite implementado são recusados. O conteúdo pode conter dados da sessão e não deve ser gravado em logs. No v584, a rotina de formatação usa cinco campos decimais, uma string e quatro campos hexadecimais. A semântica de cada campo ainda precisa ser confirmada antes de ser usada na inicialização do monitor.

@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 /*
- * Decodes the hexadecimal launch frame observed in the v584 SDK.
+ * Decodes the launch frame with escaped hexadecimal bytes observed in the v584 SDK.
  * The decoded bytes may contain session data; callers must not log them.
  * Returns 1 on success and 0 for an invalid or unsupported frame.
  */
