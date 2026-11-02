@@ -10,5 +10,5 @@ for %%F in (modules\root-helper\src\*.c modules\root-helper\include\*.h) do (
     "%CLANG_FORMAT%" --dry-run --Werror --style=file "%%F"
     if errorlevel 1 exit /b 1
 )
-"%CC%" -m32 -std=c11 -Wall -Wextra -Werror -fanalyzer -fsyntax-only -Ibuild -Imodules/root-helper/include modules/root-helper/src/sdk_profile.c modules/root-helper/src/footer.c modules/root-helper/src/signature_win32.c modules/root-helper/src/launch_frame.c modules/root-helper/src/startup_parameters.c modules/root-helper/src/ini_win32.c modules/root-helper/src/config.c modules/root-helper/src/monitor.c modules/root-helper/src/files_win32.c modules/root-helper/src/main.c
+"%CC%" -m32 -std=c11 -Wall -Wextra -Werror -fanalyzer -fsyntax-only -Ibuild -Imodules/root-helper/include modules/root-helper/src/sdk_profile.c modules/root-helper/src/footer.c modules/root-helper/src/signature_win32.c modules/root-helper/src/launch_frame.c modules/root-helper/src/startup_parameters.c modules/root-helper/src/ini_win32.c modules/root-helper/src/config.c modules/root-helper/src/monitor.c modules/root-helper/src/sync_win32.c modules/root-helper/src/files_win32.c modules/root-helper/src/main.c
 exit /b %errorlevel%

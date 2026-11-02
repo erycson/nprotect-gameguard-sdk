@@ -2,6 +2,7 @@
 #include "gg_files.h"
 #include "public_key.h"
 #include "gg_startup.h"
+#include "gg_sync.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -57,12 +58,16 @@ int main(int argc, char **argv) {
     (void)gg_public_key_blob;
     valid = 0;
 #endif
-    SecureZeroMemory(&parameters, sizeof parameters);
     if (!valid) {
+        SecureZeroMemory(&parameters, sizeof parameters);
         fputs("GameGuard: configuracao ou integridade do monitor invalida.\n", stderr);
         return 1;
     }
-    /* Do not signal readiness until update and IPC behavior are implemented. */
-    fputs("GameGuard: sincronizacao ainda nao implementada.\n", stderr);
-    return 1;
+    valid = gg_signal_ready(&parameters, 10000);
+    SecureZeroMemory(&parameters, sizeof parameters);
+    if (!valid) {
+        fputs("GameGuard: falha ao sinalizar o SDK.\n", stderr);
+        return 1;
+    }
+    return 0x755;
 }
