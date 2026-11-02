@@ -79,9 +79,17 @@ int gg_parse_startup_parameters(const uint8_t *payload, size_t length,
         !next_field(payload, length, &position, &current) ||
         !parse_game_name(current, parsed.game_name))
         return 0;
-    for (i = 0; i < sizeof hex_fields / sizeof hex_fields[0]; ++i) {
+    /* Legacy SDKs supply four hexadecimal fields; newer ones supply five. */
+    for (i = 0; i < 4u; ++i) {
         if (!next_field(payload, length, &position, &current) ||
             !parse_uint32(current, 16u, hex_fields[i]))
+            return 0;
+    }
+    while (position < length && payload[position] == ' ')
+        ++position;
+    if (position < length) {
+        if (!next_field(payload, length, &position, &current) ||
+            !parse_uint32(current, 16u, hex_fields[4]))
             return 0;
     }
     while (position < length && payload[position] == ' ')

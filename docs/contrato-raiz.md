@@ -33,7 +33,7 @@ Validação de ponta a ponta da sequência de inicialização, da sincronizaçã
 
 O SDK v584 transforma o texto de inicialização em um quadro binário e o representa na linha de comando com cada byte no formato `\xNN`. O quadro contém um byte de formato (`1`), um byte usado como semente, dois bytes de comprimento e o conteúdo codificado. O algoritmo é uma transformação reversível, não uma assinatura nem uma garantia de integridade.
 
-`gg_decode_launch_frame` recebe a representação `\xNN`, verifica o formato e o comprimento e devolve os bytes decodificados. Entradas truncadas, caracteres inválidos e conteúdo maior que o limite implementado são recusados. O conteúdo pode conter dados da sessão e não deve ser gravado em logs. No v584, a rotina de formatação usa um campo decimal, uma string e cinco campos hexadecimais. A semântica de cada campo ainda precisa ser confirmada antes de ser usada na inicialização do monitor.
+`gg_decode_launch_frame` recebe a representação `\xNN`, verifica o formato e o comprimento e devolve os bytes decodificados. Entradas truncadas, caracteres inválidos e conteúdo maior que o limite implementado são recusados. O conteúdo pode conter dados da sessão e não deve ser gravado em logs. No v584, a rotina de formatação usa um campo decimal, uma string e cinco campos hexadecimais. A v495 apresentou uma variação com quatro campos hexadecimais. A associação do PID e do evento dessa variação ainda precisa de validação em execução.
 
 ## Configuração observada
 

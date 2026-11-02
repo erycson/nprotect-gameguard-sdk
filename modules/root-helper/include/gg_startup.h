@@ -16,7 +16,7 @@ typedef struct {
     uint32_t extra_values[2];
 } gg_startup_parameters;
 
-/* Parses the decoded v584 payload without modifying the input or logging it. */
+/* Parses the decoded legacy or modern payload without logging it. */
 int gg_parse_startup_parameters(const uint8_t *payload, size_t length,
                                 gg_startup_parameters *parameters);
 
