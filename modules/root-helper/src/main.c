@@ -14,7 +14,8 @@ static int read_startup(int argc, char **argv, gg_startup_parameters *parameters
     size_t length;
     int i, found = 0;
 
-    for (i = 1; i < argc; ++i) {
+    /* The SDK supplies the encoded frame as the entire command line, including argv[0]. */
+    for (i = 0; i < argc; ++i) {
         if (strncmp(argv[i], "\\x01", 4) != 0)
             continue;
         if (found || !gg_decode_launch_frame(argv[i], payload, sizeof payload, &length) ||
