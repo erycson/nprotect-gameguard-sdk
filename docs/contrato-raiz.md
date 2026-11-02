@@ -55,10 +55,18 @@ Na v584, `FUN_005c34a0` lê os 64 primeiros bytes da imagem do auxiliar em memó
 
 ## Evento do SDK
 
-Após verificar o INI assinado, `GAME_NAME`, `NO_UPDATE=1`, a assinatura e o CRC do GameMon, o auxiliar sinaliza o evento herdado recebido no quadro de inicialização. O processo permanece vivo até dez segundos, para permitir que o SDK leia o campo de CRC da imagem. A sinalização é uma etapa da inicialização e não indica que o GameMon iniciou ou que a autenticação foi aceita. A sequência completa ainda requer validação com o cliente real.
+Após verificar o INI assinado, `GAME_NAME`, `NO_UPDATE=1`, a assinatura e o CRC do GameMon, o auxiliar sinaliza o evento herdado recebido no quadro de inicialização. O processo permanece vivo até trinta segundos, para permitir que o SDK leia o campo de CRC da imagem. A sinalização é uma etapa da inicialização e não indica que o GameMon iniciou ou que a autenticação foi aceita. A sequência completa ainda requer validação com o cliente real.
 
 ## Metadados de integridade
 
 A implementação verifica as assinaturas e calcula os CRCs completos do INI selecionado, `GameMon.des`, `ggscan.des` e `npggNT.des`. Antes da sinalização, grava os quatro DWORDs em `HKCU\SOFTWARE\INCAInternet\nProtectGameGuard\Update` como `INF HashValue`, `DLL HashValue`, `DLL HashValue 2` e `DLL HashValue 3`. Ao encerrar a etapa, tenta restaurar os valores anteriores sem substituir um valor modificado por outro processo. O processo precisa de acesso de leitura e escrita a essa chave.
 
 O cliente v584 iniciou o GameMon após a preparação dos quatro CRCs; a inicialização completa e a estabilidade permanecem por validar.
+
+## Compatibilidade do monitor v584
+
+O SDK v584 lê o auxiliar em `0x400000`; as builds usam essa base, sem ASLR nem relocação, e o assinador grava o CRC complementado no offset `0x24` antes da assinatura.
+
+O GameMon usado nos testes tem SHA-256 do payload `4b8610a843274c942717036717b259fce999307a0c65e389050037403d154af9`. Para esse payload, o auxiliar instala em memória um manipulador restrito a quatro chamadas nulas identificadas, encaminhando-as às respectivas funções nativas do Windows. As demais exceções seguem o tratamento original. O arquivo GameMon não é alterado; outros payloads são recusados. A assinatura e o CRC são verificados separadamente.
+
+O auxiliar verifica o PID do processo pai e remove, quando presente, o vínculo de depuração mantido pelo empacotador do cliente. Essa operação altera o estado de depuração do processo, sem alterar os bytes do GME. O detector lê a estrutura PE do arquivo e a seção `.text` do processo pai; uma seção parcialmente ilegível, um perfil desconhecido ou múltiplas correspondências são recusados.

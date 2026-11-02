@@ -13,7 +13,7 @@ Projeto em C para o executável GameGuard.des da raiz, em Windows x86.
 
 O projeto contém um detector estrutural de SDK, parser do rodapé, CRC32, verificação RSA/MD5 via CryptoAPI e decodificação do quadro de inicialização v584. A implementação experimental verifica o INI e o GameMon, valida o CRC e sinaliza o evento herdado no modo sem atualização. O SDK inicia o GameMon em processo separado. A compatibilidade de ponta a ponta ainda precisa de testes com os clientes e o servidor; **não há garantia de substituição funcional**.
 
-Requer Windows, compilador MinGW-w64 i686 e Python 3 para o teste opcional de capturas. O binário do jogo e os arquivos GameGuard não integram o repositório.
+Requer Windows, PowerShell 7 e compilador MinGW-w64 i686; Python 3 é necessário apenas para o teste opcional de capturas. O binário do jogo e os arquivos GameGuard não integram o repositório.
 
 ```bat
 compilar.bat
@@ -32,3 +32,5 @@ O detector das variantes individuais rejeita a outra família; a híbrida aceita
 ## Chave pública
 
 Defina `GG_PUBLIC_KEY` com o caminho de uma chave pública RSA de 512 bits em PEM antes de compilar. O script incorpora somente a chave pública ao executável; a chave privada não é utilizada na compilação. Sem essa variável, a compilação gera um protótipo sem chave que rejeita a inicialização. A versão compilada precisa receber o CRC e a assinatura por meio do assinador compatível antes de ser usada pelo SDK.
+
+O auxiliar aplica compatibilidade em memória somente ao GameMon v584 identificado no contrato técnico e remove o vínculo de depuração do processo pai quando necessário. O GME e o GameMon em disco não são modificados.
