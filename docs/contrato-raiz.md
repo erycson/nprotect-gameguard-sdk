@@ -34,3 +34,7 @@ Contrato completo de inicialização, modo de lançamento e finalização do Gam
 O SDK v584 transforma o texto de inicialização em um quadro binário e o representa na linha de comando com cada byte no formato `\xNN`. O quadro contém um byte de formato (`1`), um byte usado como semente, dois bytes de comprimento e o conteúdo codificado. O algoritmo é uma transformação reversível, não uma assinatura nem uma garantia de integridade.
 
 `gg_decode_launch_frame` recebe a representação `\xNN`, verifica o formato e o comprimento e devolve os bytes decodificados. Entradas truncadas, caracteres inválidos e conteúdo maior que o limite implementado são recusados. O conteúdo pode conter dados da sessão e não deve ser gravado em logs. No v584, a rotina de formatação usa um campo decimal, uma string e cinco campos hexadecimais. A semântica de cada campo ainda precisa ser confirmada antes de ser usada na inicialização do monitor.
+
+## Configuração observada
+
+Na captura de memória do auxiliar associada ao cliente PH v500, a rotina `0x407100` verifica e lê o INI da identidade recebida. As chaves observadas na seção `GAMEMON` incluem `UPDATE_SERVER`, `UPDATE_PATH`, `BACKUP_SERVER`, `BACKUP_PATH`, `NO_UPDATE`, `NO_SPLASH`, `UP_SPLASH` e `NO_USE_SCAN`. A rotina compara a identidade configurada com a identidade informada pelo jogo; a captura isolada não prova que o GameMon aceite outro nome ou outra identidade. O caminho para padronização de um único INI precisa preservar essa associação e ser validado no GameMon.
