@@ -1,5 +1,6 @@
 #include "gg_files.h"
 #include "gg_config.h"
+#include "gg_contract.h"
 #include "gg_ini.h"
 #include "gg_monitor.h"
 
@@ -34,7 +35,8 @@ done:
 }
 
 int gg_validate_local_files(const gg_startup_parameters *startup, const uint8_t *public_key,
-                            size_t public_key_length, uint32_t expected_monitor_crc) {
+                            size_t public_key_length, uint32_t expected_monitor_crc,
+                            uint32_t crc_values[4]) {
     char executable[MAX_PATH], directory[MAX_PATH], filename[GG_MAX_GAME_NAME + 5u];
     char path[MAX_PATH];
     uint8_t *file = NULL, *plain = NULL;
@@ -43,8 +45,11 @@ int gg_validate_local_files(const gg_startup_parameters *startup, const uint8_t 
     char *slash;
     gg_config config;
     int result = 0;
+    uint32_t verified_crc[4];
+    const char *modules[] = {"ggscan.des", "npggNT.des"};
+    size_t i;
 
-    if (!startup || !public_key || !public_key_length)
+    if (!startup || !public_key || !public_key_length || !crc_values)
         return 0;
     chars = GetModuleFileNameA(NULL, executable, sizeof executable);
     if (!chars || chars >= sizeof executable)
@@ -69,6 +74,7 @@ int gg_validate_local_files(const gg_startup_parameters *startup, const uint8_t 
         !gg_parse_config(plain, plain_length, &config) ||
         _stricmp(config.game_name, startup->game_name) || !config.no_update)
         goto done;
+    verified_crc[0] = gg_crc32(file, length);
     SecureZeroMemory(plain, length);
     free(plain);
     plain = NULL;
@@ -79,7 +85,23 @@ int gg_validate_local_files(const gg_startup_parameters *startup, const uint8_t 
     file = read_file(path, &length);
     if (!file)
         goto done;
-    result = gg_validate_monitor(file, length, expected_monitor_crc, public_key, public_key_length);
+    if (!gg_validate_monitor(file, length, expected_monitor_crc, public_key, public_key_length))
+        goto done;
+    verified_crc[1] = gg_crc32(file, length);
+    free(file);
+    file = NULL;
+    for (i = 0; i < sizeof modules / sizeof modules[0]; ++i) {
+        if ((size_t)snprintf(path, sizeof path, "%s\\%s", directory, modules[i]) >= sizeof path)
+            goto done;
+        file = read_file(path, &length);
+        if (!file || !gg_verify_signature(file, length, modules[i], public_key, public_key_length))
+            goto done;
+        verified_crc[i + 2] = gg_crc32(file, length);
+        free(file);
+        file = NULL;
+    }
+    memcpy(crc_values, verified_crc, sizeof verified_crc);
+    result = 1;
 done:
     if (plain) {
         SecureZeroMemory(plain, length);

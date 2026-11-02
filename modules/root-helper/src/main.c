@@ -1,4 +1,5 @@
 #include "gg_launch.h"
+#include "gg_metadata.h"
 #include "gg_files.h"
 #include "public_key.h"
 #include "gg_startup.h"
@@ -34,7 +35,8 @@ static int read_startup(int argc, char **argv, gg_startup_parameters *parameters
 
 int main(int argc, char **argv) {
     gg_startup_parameters parameters = {0};
-    uint32_t inverted_crc = 0;
+    gg_metadata metadata;
+    uint32_t inverted_crc = 0, crc_values[4] = {0};
     const uint8_t *image;
     int valid = read_startup(argc, argv, &parameters);
 
@@ -51,7 +53,7 @@ int main(int argc, char **argv) {
     }
     memcpy(&inverted_crc, image + 0x24, sizeof inverted_crc);
     valid = gg_validate_local_files(&parameters, gg_public_key_blob, sizeof gg_public_key_blob,
-                                    ~inverted_crc);
+                                    ~inverted_crc, crc_values);
 #else
     (void)image;
     (void)inverted_crc;
@@ -63,7 +65,13 @@ int main(int argc, char **argv) {
         fputs("GameGuard: configuracao ou integridade do monitor invalida.\n", stderr);
         return 1;
     }
+    if (!gg_metadata_open(&metadata, crc_values)) {
+        SecureZeroMemory(&parameters, sizeof parameters);
+        fputs("GameGuard: falha ao preparar metadados locais.\n", stderr);
+        return 1;
+    }
     valid = gg_signal_ready(&parameters, 10000);
+    gg_metadata_close(&metadata);
     SecureZeroMemory(&parameters, sizeof parameters);
     if (!valid) {
         fputs("GameGuard: falha ao sinalizar o SDK.\n", stderr);

@@ -56,3 +56,9 @@ Na v584, `FUN_005c34a0` lê os 64 primeiros bytes da imagem do auxiliar em memó
 ## Evento do SDK
 
 Após verificar o INI assinado, `GAME_NAME`, `NO_UPDATE=1`, a assinatura e o CRC do GameMon, o auxiliar sinaliza o evento herdado recebido no quadro de inicialização. O processo permanece vivo até dez segundos, para permitir que o SDK leia o campo de CRC da imagem. A sinalização é uma etapa da inicialização e não indica que o GameMon iniciou ou que a autenticação foi aceita. A sequência completa ainda requer validação com o cliente real.
+
+## Metadados de integridade
+
+A implementação verifica as assinaturas e calcula os CRCs completos do INI selecionado, `GameMon.des`, `ggscan.des` e `npggNT.des`. Antes da sinalização, grava os quatro DWORDs em `HKCU\SOFTWARE\INCAInternet\nProtectGameGuard\Update` como `INF HashValue`, `DLL HashValue`, `DLL HashValue 2` e `DLL HashValue 3`. Ao encerrar a etapa, tenta restaurar os valores anteriores sem substituir um valor modificado por outro processo. O processo precisa de acesso de leitura e escrita a essa chave.
+
+O cliente v584 iniciou o GameMon após a preparação dos quatro CRCs; a inicialização completa e a estabilidade permanecem por validar.
