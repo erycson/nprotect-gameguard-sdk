@@ -1,4 +1,5 @@
 #include "gg_ini.h"
+#include "gg_contract.h"
 
 #include <limits.h>
 #include <string.h>
@@ -40,4 +41,19 @@ cleanup:
     if (provider)
         CryptReleaseContext(provider, 0);
     return success;
+}
+
+int gg_read_signed_ini(const uint8_t *file, size_t file_length, const char *expected_name,
+                       const uint8_t *public_blob, size_t public_blob_length, uint8_t *output,
+                       size_t output_capacity, size_t *output_length) {
+    gg_footer footer;
+
+    if (!output_length)
+        return 0;
+    *output_length = 0;
+    if (!gg_parse_footer(file, file_length, &footer) ||
+        !gg_verify_signature(file, file_length, expected_name, public_blob, public_blob_length))
+        return 0;
+    return gg_decrypt_ini_payload(file, footer.payload_length, output, output_capacity,
+                                  output_length);
 }
