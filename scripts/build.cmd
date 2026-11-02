@@ -2,6 +2,9 @@
 setlocal
 cd /d "%~dp0.."
 if not defined CC set "CC=gcc.exe"
+if not exist build mkdir build
+pwsh -NoProfile -NonInteractive -File scripts\public-key.ps1 -InputKey "%GG_PUBLIC_KEY%" -Output build\public_key.h
+if errorlevel 1 exit /b 1
 set "mode=%~1"
 if not defined mode set "mode=all"
 if /i "%mode%"=="all" (
@@ -29,5 +32,5 @@ exit /b %errorlevel%
 :build
 if not exist "build\%~1" mkdir "build\%~1"
 echo Compilando %~1...
-"%CC%" -m32 -std=c11 -Wall -Wextra -Werror -DGG_AUTH_MODE=%~2 -Imodules/root-helper/include modules/root-helper/src/sdk_profile.c modules/root-helper/src/footer.c modules/root-helper/src/signature_win32.c modules/root-helper/src/launch_frame.c modules/root-helper/src/startup_parameters.c modules/root-helper/src/ini_win32.c modules/root-helper/src/config.c modules/root-helper/src/monitor.c modules/root-helper/src/main.c -ladvapi32 -o "build/%~1/GameGuard.des"
+"%CC%" -m32 -std=c11 -Wall -Wextra -Werror -DGG_AUTH_MODE=%~2 -Ibuild -Imodules/root-helper/include modules/root-helper/src/sdk_profile.c modules/root-helper/src/footer.c modules/root-helper/src/signature_win32.c modules/root-helper/src/launch_frame.c modules/root-helper/src/startup_parameters.c modules/root-helper/src/ini_win32.c modules/root-helper/src/config.c modules/root-helper/src/monitor.c modules/root-helper/src/files_win32.c modules/root-helper/src/main.c -ladvapi32 -o "build/%~1/GameGuard.des"
 exit /b %errorlevel%

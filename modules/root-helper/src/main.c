@@ -1,4 +1,6 @@
 #include "gg_launch.h"
+#include "gg_files.h"
+#include "public_key.h"
 #include "gg_startup.h"
 
 #include <stdint.h>
@@ -31,14 +33,36 @@ static int read_startup(int argc, char **argv, gg_startup_parameters *parameters
 
 int main(int argc, char **argv) {
     gg_startup_parameters parameters = {0};
+    uint32_t inverted_crc = 0;
+    const uint8_t *image;
     int valid = read_startup(argc, argv, &parameters);
 
-    SecureZeroMemory(&parameters, sizeof parameters);
     if (!valid) {
+        SecureZeroMemory(&parameters, sizeof parameters);
         fputs("GameGuard: argumento de inicializacao invalido ou nao suportado.\n", stderr);
         return 1;
     }
-    /* Do not signal readiness until update, monitor and IPC behavior are implemented. */
-    fputs("GameGuard: inicializacao do monitor ainda nao implementada.\n", stderr);
+#if GG_PUBLIC_KEY_AVAILABLE
+    image = (const uint8_t *)GetModuleHandleA(NULL);
+    if (!image) {
+        SecureZeroMemory(&parameters, sizeof parameters);
+        return 1;
+    }
+    memcpy(&inverted_crc, image + 0x24, sizeof inverted_crc);
+    valid = gg_validate_local_files(&parameters, gg_public_key_blob, sizeof gg_public_key_blob,
+                                    ~inverted_crc);
+#else
+    (void)image;
+    (void)inverted_crc;
+    (void)gg_public_key_blob;
+    valid = 0;
+#endif
+    SecureZeroMemory(&parameters, sizeof parameters);
+    if (!valid) {
+        fputs("GameGuard: configuracao ou integridade do monitor invalida.\n", stderr);
+        return 1;
+    }
+    /* Do not signal readiness until update and IPC behavior are implemented. */
+    fputs("GameGuard: sincronizacao ainda nao implementada.\n", stderr);
     return 1;
 }
