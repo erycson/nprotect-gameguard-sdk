@@ -46,3 +46,9 @@ O SDK no GME cria o `GameGuard.des` da raiz com herança de handles ativada e ag
 A linha de comando do auxiliar pode conter somente o quadro `\xNN`, sem nome de executável precedendo-o. A entrada do programa deve considerar esse quadro também em `argv[0]`.
 
 O conteúdo do INI é cifrado com RC4 por uma chave derivada de MD5 usando a CryptoAPI `PROV_RSA_FULL`; a verificação do rodapé e da assinatura deve ocorrer antes da descriptografia. `gg_decrypt_ini_payload` não verifica a assinatura por si só.
+
+## Integridade do monitor
+
+Na v584, `FUN_005c34a0` lê os 64 primeiros bytes da imagem do auxiliar em memória e inverte o DWORD em `0x400024`. O resultado é usado como CRC esperado do arquivo GameMon completo, inclusive assinatura e rodapé. O assinador preenche o campo do auxiliar com o complemento desse CRC antes de assiná-lo. Alterar o campo depois da assinatura invalida a assinatura do auxiliar.
+
+`gg_validate_monitor` verifica o CRC completo e a assinatura identificada como `GameMon.des`; ela recebe a chave pública de confiança explicitamente. Isso não implementa o fluxo de inicialização do monitor.
