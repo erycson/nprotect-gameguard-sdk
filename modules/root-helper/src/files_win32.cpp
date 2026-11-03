@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <new>
 #include <vector>
 #include <windows.h>
 
@@ -25,7 +26,12 @@ std::vector<uint8_t> read_file(const char *path) {
     if (std::fseek(file.get(), 0, SEEK_END) || (size = std::ftell(file.get())) <= 0 ||
         static_cast<unsigned long>(size) > kFileLimit || std::fseek(file.get(), 0, SEEK_SET))
         return {};
-    std::vector<uint8_t> data(static_cast<std::size_t>(size));
+    std::vector<uint8_t> data;
+    try {
+        data.resize(static_cast<std::size_t>(size));
+    } catch (const std::bad_alloc &) {
+        return {}; // Match the C version: an allocation failure is a graceful failure.
+    }
     if (std::fread(data.data(), 1, data.size(), file.get()) != data.size())
         return {};
     return data;

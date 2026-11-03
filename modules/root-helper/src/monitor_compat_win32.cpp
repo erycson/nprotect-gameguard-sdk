@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cwchar>
+#include <new>
 #include <tlhelp32.h>
 #include <vector>
 #include <wincrypt.h>
@@ -29,7 +30,12 @@ bool known_monitor(const wchar_t *path) {
     const DWORD size = GetFileSize(file.get(), nullptr);
     if (!size || size > kMonitorFileLimit)
         return false;
-    std::vector<BYTE> data(size);
+    std::vector<BYTE> data;
+    try {
+        data.resize(size);
+    } catch (const std::bad_alloc &) {
+        return false; // Match the C version: an allocation failure is a graceful failure.
+    }
     DWORD read = 0;
     gg_footer footer;
     if (!ReadFile(file.get(), data.data(), size, &read, nullptr) || read != size ||

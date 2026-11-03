@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <new>
 #include <tlhelp32.h>
 #include <vector>
 
@@ -64,7 +65,12 @@ gg_detection gg_detect_process_sdk(uint32_t pid) {
             sections[i].VirtualAddress > nt->OptionalHeader.SizeOfImage ||
             size > nt->OptionalHeader.SizeOfImage - sections[i].VirtualAddress)
             return result;
-        std::vector<BYTE> text(size);
+        std::vector<BYTE> text;
+        try {
+            text.resize(size);
+        } catch (const std::bad_alloc &) {
+            return result; // Match the C version: an allocation failure leaves the SDK unknown.
+        }
         unsigned pages = 0;
         for (DWORD offset = 0; offset < size; offset += 4096u) {
             const DWORD part = size - offset > 4096u ? 4096u : size - offset;
