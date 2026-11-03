@@ -37,7 +37,7 @@ static int read_startup(int argc, char **argv, gg_startup_parameters *parameters
 }
 
 int main(int argc, char **argv) {
-    gg_startup_parameters parameters = {0};
+    gg_startup_parameters parameters = {};
     gg_metadata metadata;
     gg_monitor_compat compat;
     uint32_t inverted_crc = 0, crc_values[4] = {0};

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0.."
-if not defined CC set "CC=gcc.exe"
+if not defined CXX set "CXX=g++.exe"
 if not exist build mkdir build
 pwsh -NoProfile -NonInteractive -File scripts\public-key.ps1 -InputKey "%GG_PUBLIC_KEY%" -Output build\public_key.h
 if errorlevel 1 exit /b 1
@@ -32,5 +32,5 @@ exit /b %errorlevel%
 :build
 if not exist "build\%~1" mkdir "build\%~1"
 echo Compilando %~1...
-"%CC%" -m32 -mwindows -Wl,--disable-dynamicbase,--disable-reloc-section -std=c11 -Wall -Wextra -Werror -DGG_AUTH_MODE=%~2 -Ibuild -Imodules/root-helper/include modules/root-helper/src/sdk_profile.c modules/root-helper/src/footer.c modules/root-helper/src/signature_win32.c modules/root-helper/src/launch_frame.c modules/root-helper/src/startup_parameters.c modules/root-helper/src/ini_win32.c modules/root-helper/src/config.c modules/root-helper/src/monitor.c modules/root-helper/src/sync_win32.c modules/root-helper/src/metadata_win32.c modules/root-helper/src/monitor_compat_win32.c modules/root-helper/src/parent_win32.c modules/root-helper/src/profile_process_win32.c modules/root-helper/src/files_win32.c modules/root-helper/src/main.c -ladvapi32 -o "build/%~1/GameGuard.des"
+"%CXX%" -m32 -static-libgcc -static-libstdc++ -mwindows -Wl,--disable-dynamicbase,--disable-reloc-section -std=c++17 -Wall -Wextra -Werror -DGG_AUTH_MODE=%~2 -Ibuild -Imodules/root-helper/include modules/root-helper/src/sdk_profile.cpp modules/root-helper/src/footer.cpp modules/root-helper/src/signature_win32.cpp modules/root-helper/src/launch_frame.cpp modules/root-helper/src/startup_parameters.cpp modules/root-helper/src/ini_win32.cpp modules/root-helper/src/config.cpp modules/root-helper/src/monitor.cpp modules/root-helper/src/sync_win32.cpp modules/root-helper/src/metadata_win32.cpp modules/root-helper/src/monitor_compat_win32.cpp modules/root-helper/src/parent_win32.cpp modules/root-helper/src/profile_process_win32.cpp modules/root-helper/src/files_win32.cpp modules/root-helper/src/main.cpp -ladvapi32 -o "build/%~1/GameGuard.des"
 exit /b %errorlevel%

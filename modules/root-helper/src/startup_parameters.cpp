@@ -66,7 +66,7 @@ static int parse_game_name(field value, char *output) {
 
 int gg_parse_startup_parameters(const uint8_t *payload, size_t length,
                                 gg_startup_parameters *parameters) {
-    gg_startup_parameters parsed = {0};
+    gg_startup_parameters parsed = {};
     uint32_t *hex_fields[] = {&parsed.startup_event, &parsed.inherited_handle, &parsed.game_pid,
                               &parsed.extra_values[0], &parsed.extra_values[1]};
     size_t position = 0, i;

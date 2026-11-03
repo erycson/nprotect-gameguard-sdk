@@ -52,7 +52,8 @@ static int emit_compare(CODE *c, int reg, int offset, DWORD value, BYTE op) {
 }
 static DWORD remote_ntdll_base(DWORD pid) {
     HANDLE s = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
-    MODULEENTRY32W m = {.dwSize = sizeof(m)};
+    MODULEENTRY32W m = {};
+    m.dwSize = sizeof(m);
     DWORD b = 0;
     if (s == INVALID_HANDLE_VALUE)
         return 0;
@@ -72,7 +73,7 @@ static DWORD ntfn(DWORD base, const char *name) {
     return p ? base + (DWORD)((BYTE *)p - (BYTE *)h) : 0;
 }
 static BOOL build_exception_handler(CODE *out, DWORD base, const DWORD apis[4]) {
-    CODE c = {0};
+    CODE c = {};
     int fails[64], nf = 0;
     BYTE pre[] = {0x9c, 0x60, 0x8b, 0x44, 0x24, 0x28, 0x8b, 0x30};
     emit_bytes(&c, pre, sizeof(pre));
@@ -162,7 +163,7 @@ static BOOL install_monitor_handler(DWORD pid, const wchar_t *expected) {
                      ntfn(nt, "NtSetInformationThread"), ntfn(nt, "NtClose")};
     CODE c;
     BOOL valid = build_exception_handler(&c, base, apis);
-    CODE start = {0};
+    CODE start = {};
     emit_byte(&start, 0x68);
     emit_dword(&start, base);
     BYTE one[] = {0x6a, 1, 0xb8};

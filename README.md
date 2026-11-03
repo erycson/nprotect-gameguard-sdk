@@ -1,6 +1,6 @@
 # GameGuard interface
 
-Projeto em C para o executável GameGuard.des da raiz, em Windows x86.
+Projeto em C++17 para o executável GameGuard.des da raiz, em Windows x86.
 
 ## Estrutura
 
@@ -21,7 +21,7 @@ scripts\lint.cmd
 .dev\test.cmd
 ```
 
-`CC` pode apontar para `i686-w64-mingw32-gcc.exe`; sem `CC`, os scripts usam `gcc.exe` no PATH. O linter requer `clang-format` (ou `CLANG_FORMAT`) e GCC com `-fanalyzer`. A saída é gravada em `build/`. Os testes não executam imagens de clientes capturadas; `.dev/check-samples.py` lê somente suas seções `.text`.
+`CXX` pode apontar para `i686-w64-mingw32-g++.exe`; sem `CXX`, os scripts usam `g++.exe` no PATH. O runtime C++ é incorporado estaticamente (`-static-libgcc -static-libstdc++`), sem dependência de DLL. O linter requer `clang-format` (ou `CLANG_FORMAT`) e g++ com `-fanalyzer`. A saída é gravada em `build/`. Os testes não executam imagens de clientes capturadas; `.dev/check-samples.py` lê somente suas seções `.text`.
 
 ## Variantes de compilação
 

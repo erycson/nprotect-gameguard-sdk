@@ -27,7 +27,7 @@ static int known_monitor(const wchar_t *path) {
     if (file == INVALID_HANDLE_VALUE)
         goto done;
     size = GetFileSize(file, NULL);
-    if (!size || size > 32u * 1024u * 1024u || !(data = malloc(size)) ||
+    if (!size || size > 32u * 1024u * 1024u || !(data = (BYTE *)malloc(size)) ||
         !ReadFile(file, data, size, &read, NULL) || read != size ||
         !gg_parse_footer(data, size, &footer) ||
         !CryptAcquireContextW(&provider, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) ||
