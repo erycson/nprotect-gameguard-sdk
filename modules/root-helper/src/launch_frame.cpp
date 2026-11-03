@@ -1,10 +1,15 @@
 #include "gg_launch.h"
 
-#define GG_LAUNCH_HEADER_BYTES 4u
-#define GG_LAUNCH_MAX_PAYLOAD 2048u
-#define GG_ENCODED_BYTE_CHARS 4u
+#include <cstddef>
+#include <cstdint>
 
-static int hex_digit(char c) {
+namespace {
+
+constexpr std::size_t kHeaderBytes = 4u;
+constexpr std::size_t kMaxPayload = 2048u;
+constexpr std::size_t kEncodedByteChars = 4u;
+
+constexpr int hex_digit(char c) {
     if (c >= '0' && c <= '9')
         return c - '0';
     if (c >= 'a' && c <= 'f')
@@ -14,57 +19,61 @@ static int hex_digit(char c) {
     return -1;
 }
 
-/* The v584 SDK writes each byte as the four characters backslash, x, and two hex digits. */
-static int encoded_byte(const char *input, uint8_t *value) {
-    int high, low;
+// The v584 SDK writes each byte as the four characters backslash, x and two hex digits.
+bool encoded_byte(const char *input, std::uint8_t &value) {
     if (input[0] != '\\' || input[1] != 'x')
-        return 0;
-    high = hex_digit(input[2]);
-    low = hex_digit(input[3]);
+        return false;
+    const int high = hex_digit(input[2]);
+    const int low = hex_digit(input[3]);
     if (high < 0 || low < 0)
-        return 0;
-    *value = (uint8_t)((high << 4) | low);
-    return 1;
+        return false;
+    value = static_cast<std::uint8_t>((high << 4) | low);
+    return true;
 }
+
+} // namespace
 
 int gg_decode_launch_frame(const char *encoded, uint8_t *output, size_t output_capacity,
                            size_t *output_length) {
-    uint8_t header[GG_LAUNCH_HEADER_BYTES];
-    uint8_t value, state;
-    size_t chars = 0, length, i;
-
     if (!encoded || !output || !output_length)
         return 0;
     *output_length = 0;
-    while (chars <= GG_ENCODED_BYTE_CHARS * (GG_LAUNCH_MAX_PAYLOAD + GG_LAUNCH_HEADER_BYTES) &&
-           encoded[chars] != '\0')
+
+    std::size_t chars = 0;
+    while (chars <= kEncodedByteChars * (kMaxPayload + kHeaderBytes) && encoded[chars] != '\0')
         ++chars;
-    if (chars < GG_ENCODED_BYTE_CHARS * GG_LAUNCH_HEADER_BYTES || chars % GG_ENCODED_BYTE_CHARS ||
-        chars > GG_ENCODED_BYTE_CHARS * (GG_LAUNCH_MAX_PAYLOAD + GG_LAUNCH_HEADER_BYTES))
+    if (chars < kEncodedByteChars * kHeaderBytes || chars % kEncodedByteChars ||
+        chars > kEncodedByteChars * (kMaxPayload + kHeaderBytes))
         return 0;
 
-    /* Validate the whole input before writing any decoded bytes. */
-    for (i = 0; i < chars; i += GG_ENCODED_BYTE_CHARS)
-        if (!encoded_byte(encoded + i, &value))
+    std::uint8_t value = 0;
+    // Validate the whole input before writing any decoded bytes.
+    for (std::size_t i = 0; i < chars; i += kEncodedByteChars)
+        if (!encoded_byte(encoded + i, value))
             return 0;
-    for (i = 0; i < GG_LAUNCH_HEADER_BYTES; ++i)
-        if (!encoded_byte(encoded + GG_ENCODED_BYTE_CHARS * i, &header[i]))
+
+    std::uint8_t header[kHeaderBytes];
+    for (std::size_t i = 0; i < kHeaderBytes; ++i)
+        if (!encoded_byte(encoded + kEncodedByteChars * i, header[i]))
             return 0;
     if (header[0] != 1u)
         return 0;
 
-    state = (uint8_t)(((unsigned)header[1] * 3u + 1u) * 3u);
-    length = ((size_t)(header[2] ^ (uint8_t)(header[1] * 3u + 0x65u)) << 8) |
-             (size_t)(header[3] ^ (uint8_t)(state + 0x65u));
-    if (length > GG_LAUNCH_MAX_PAYLOAD || output_capacity < length ||
-        chars != GG_ENCODED_BYTE_CHARS * (length + GG_LAUNCH_HEADER_BYTES))
+    std::uint8_t state =
+        static_cast<std::uint8_t>((static_cast<unsigned>(header[1]) * 3u + 1u) * 3u);
+    const std::size_t length =
+        (static_cast<std::size_t>(header[2] ^ static_cast<std::uint8_t>(header[1] * 3u + 0x65u))
+         << 8) |
+        static_cast<std::size_t>(header[3] ^ static_cast<std::uint8_t>(state + 0x65u));
+    if (length > kMaxPayload || output_capacity < length ||
+        chars != kEncodedByteChars * (length + kHeaderBytes))
         return 0;
 
-    for (i = 0; i < length; ++i) {
-        if (!encoded_byte(encoded + GG_ENCODED_BYTE_CHARS * (i + GG_LAUNCH_HEADER_BYTES), &value))
+    for (std::size_t i = 0; i < length; ++i) {
+        if (!encoded_byte(encoded + kEncodedByteChars * (i + kHeaderBytes), value))
             return 0;
-        state = (uint8_t)(((unsigned)state + 1u) * 3u);
-        output[i] = (uint8_t)(value ^ (uint8_t)(state + 0x65u));
+        state = static_cast<std::uint8_t>((static_cast<unsigned>(state) + 1u) * 3u);
+        output[i] = static_cast<std::uint8_t>(value ^ static_cast<std::uint8_t>(state + 0x65u));
     }
     *output_length = length;
     return 1;

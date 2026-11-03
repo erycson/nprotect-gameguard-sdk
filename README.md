@@ -21,7 +21,7 @@ scripts\lint.cmd
 .dev\test.cmd
 ```
 
-`CXX` pode apontar para `i686-w64-mingw32-g++.exe`; sem `CXX`, os scripts usam `g++.exe` no PATH. O runtime C++ é incorporado estaticamente (`-static-libgcc -static-libstdc++`), sem dependência de DLL. O linter requer `clang-format` (ou `CLANG_FORMAT`) e g++ com `-fanalyzer`. A saída é gravada em `build/`. Os testes não executam imagens de clientes capturadas; `.dev/check-samples.py` lê somente suas seções `.text`.
+`CXX` pode apontar para `i686-w64-mingw32-g++.exe`; sem `CXX`, os scripts usam `g++.exe` no PATH. O runtime C++ é incorporado estaticamente (`-static`), sem dependência de DLL além do UCRT do sistema. O linter requer `clang-format` (ou `CLANG_FORMAT`) e g++ com `-fanalyzer`. A saída é gravada em `build/`. Os testes não executam imagens de clientes capturadas; `.dev/check-samples.py` lê somente suas seções `.text`.
 
 ## Variantes de compilação
 
