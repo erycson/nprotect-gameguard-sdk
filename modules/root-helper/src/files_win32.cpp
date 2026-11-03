@@ -70,7 +70,12 @@ int gg_validate_local_files(const gg_startup_parameters *startup, const uint8_t 
         const std::vector<uint8_t> file = read_file(path);
         if (file.empty() || file.size() > 65536u)
             return 0;
-        std::vector<uint8_t> plain(file.size());
+        std::vector<uint8_t> plain;
+        try {
+            plain.resize(file.size());
+        } catch (const std::bad_alloc &) {
+            return 0;
+        }
         size_t plain_length = 0;
         gg_config config;
         const bool ok =
