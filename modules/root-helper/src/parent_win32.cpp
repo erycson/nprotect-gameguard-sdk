@@ -1,64 +1,59 @@
 #include "gg_parent.h"
+#include "gg_raii.h"
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <cstdint>
 #include <tlhelp32.h>
-#include <stdint.h>
-#include <string.h>
 
-#define GG_STATUS_PORT_NOT_SET ((LONG)0xc0000353u)
-#define GG_PROCESS_DEBUG_OBJECT 30u
+namespace {
 
-typedef LONG(NTAPI *query_process_fn)(HANDLE, ULONG, PVOID, ULONG, PULONG);
-typedef LONG(NTAPI *remove_debug_fn)(HANDLE, HANDLE);
+constexpr LONG kStatusPortNotSet = static_cast<LONG>(0xc0000353u);
+constexpr ULONG kProcessDebugObject = 30u;
 
-static DWORD parent_pid(void) {
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    PROCESSENTRY32W entry;
-    DWORD parent = 0;
-    if (snapshot == INVALID_HANDLE_VALUE)
+using QueryProcessFn = LONG(NTAPI *)(HANDLE, ULONG, PVOID, ULONG, PULONG);
+using RemoveDebugFn = LONG(NTAPI *)(HANDLE, HANDLE);
+
+DWORD parent_pid() {
+    gg::FileHandle snapshot{CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)};
+    if (!snapshot)
         return 0;
-    memset(&entry, 0, sizeof entry);
+    PROCESSENTRY32W entry{};
     entry.dwSize = sizeof entry;
-    if (Process32FirstW(snapshot, &entry)) {
+    DWORD parent = 0;
+    if (Process32FirstW(snapshot.get(), &entry)) {
         do {
             if (entry.th32ProcessID == GetCurrentProcessId()) {
                 parent = entry.th32ParentProcessID;
                 break;
             }
-        } while (Process32NextW(snapshot, &entry));
+        } while (Process32NextW(snapshot.get(), &entry));
     }
-    CloseHandle(snapshot);
     return parent;
 }
 
+} // namespace
+
 int gg_prepare_parent(uint32_t expected_pid) {
-    HMODULE module;
-    query_process_fn query;
-    remove_debug_fn remove;
-    HANDLE game, debug_object = NULL;
-    LONG status;
-    int success = 0;
     if (!expected_pid || parent_pid() != expected_pid)
         return 0;
-    module = GetModuleHandleW(L"ntdll.dll");
+    HMODULE module = GetModuleHandleW(L"ntdll.dll");
     if (!module)
         return 0;
-    query = (query_process_fn)(uintptr_t)GetProcAddress(module, "NtQueryInformationProcess");
-    remove = (remove_debug_fn)(uintptr_t)GetProcAddress(module, "NtRemoveProcessDebug");
+    auto query = reinterpret_cast<QueryProcessFn>(
+        reinterpret_cast<uintptr_t>(GetProcAddress(module, "NtQueryInformationProcess")));
+    auto remove = reinterpret_cast<RemoveDebugFn>(
+        reinterpret_cast<uintptr_t>(GetProcAddress(module, "NtRemoveProcessDebug")));
     if (!query || !remove)
         return 0;
-    game = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_SUSPEND_RESUME, FALSE, expected_pid);
+    gg::NullHandle game{
+        OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_SUSPEND_RESUME, FALSE, expected_pid)};
     if (!game)
         return 0;
-    status = query(game, GG_PROCESS_DEBUG_OBJECT, &debug_object, sizeof debug_object, NULL);
-    if (status == GG_STATUS_PORT_NOT_SET) {
-        success = 1;
-    } else if (status >= 0 && debug_object) {
-        success = remove(game, debug_object) >= 0;
-    }
-    if (debug_object)
-        CloseHandle(debug_object);
-    CloseHandle(game);
-    return success;
+    gg::NullHandle debug_object;
+    const LONG status =
+        query(game.get(), kProcessDebugObject, debug_object.receive(), sizeof(HANDLE), nullptr);
+    if (status == kStatusPortNotSet)
+        return 1;
+    if (status >= 0 && debug_object)
+        return remove(game.get(), debug_object.get()) >= 0 ? 1 : 0;
+    return 0;
 }

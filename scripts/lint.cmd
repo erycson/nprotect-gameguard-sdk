@@ -6,7 +6,7 @@ if not exist build mkdir build
 if not exist build\public_key.h pwsh -NoProfile -NonInteractive -File scripts\public-key.ps1 -Output build\public_key.h
 if errorlevel 1 exit /b 1
 if not defined CLANG_FORMAT set "CLANG_FORMAT=clang-format.exe"
-for %%F in (modules\root-helper\src\*.cpp modules\root-helper\src\*.inc modules\root-helper\include\*.h) do (
+for %%F in (modules\root-helper\src\*.cpp modules\root-helper\src\*.h modules\root-helper\src\*.inc modules\root-helper\include\*.h) do (
     "%CLANG_FORMAT%" --dry-run --Werror --style=file "%%F"
     if errorlevel 1 exit /b 1
 )

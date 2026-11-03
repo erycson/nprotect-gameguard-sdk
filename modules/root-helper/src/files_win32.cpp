@@ -3,110 +3,106 @@
 #include "gg_contract.h"
 #include "gg_ini.h"
 #include "gg_monitor.h"
+#include "gg_raii.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <vector>
 #include <windows.h>
 
-#define GG_FILE_LIMIT (32u * 1024u * 1024u)
+namespace {
 
-static uint8_t *read_file(const char *path, size_t *length) {
-    FILE *file = fopen(path, "rb");
-    long size;
-    uint8_t *data = NULL;
+constexpr unsigned long kFileLimit = 32u * 1024u * 1024u;
+
+// Reads a whole file; an empty result means failure (valid files are non-empty).
+std::vector<uint8_t> read_file(const char *path) {
+    gg::CFile file{std::fopen(path, "rb")};
     if (!file)
-        return NULL;
-    if (fseek(file, 0, SEEK_END) || (size = ftell(file)) <= 0 ||
-        (unsigned long)size > GG_FILE_LIMIT || fseek(file, 0, SEEK_SET))
-        goto done;
-    data = (uint8_t *)malloc((size_t)size);
-    if (!data)
-        goto done;
-    if (fread(data, 1, (size_t)size, file) != (size_t)size) {
-        free(data);
-        data = NULL;
-        goto done;
-    }
-    *length = (size_t)size;
-done:
-    fclose(file);
+        return {};
+    long size;
+    if (std::fseek(file.get(), 0, SEEK_END) || (size = std::ftell(file.get())) <= 0 ||
+        static_cast<unsigned long>(size) > kFileLimit || std::fseek(file.get(), 0, SEEK_SET))
+        return {};
+    std::vector<uint8_t> data(static_cast<std::size_t>(size));
+    if (std::fread(data.data(), 1, data.size(), file.get()) != data.size())
+        return {};
     return data;
 }
+
+} // namespace
 
 int gg_validate_local_files(const gg_startup_parameters *startup, const uint8_t *public_key,
                             size_t public_key_length, uint32_t expected_monitor_crc,
                             uint32_t crc_values[4]) {
-    char executable[MAX_PATH], directory[MAX_PATH], filename[GG_MAX_GAME_NAME + 5u];
-    char path[MAX_PATH];
-    uint8_t *file = NULL, *plain = NULL;
-    size_t length = 0, plain_length = 0;
-    DWORD chars;
-    char *slash;
-    gg_config config;
-    int result = 0;
-    uint32_t verified_crc[4];
-    const char *modules[] = {"ggscan.des", "npggNT.des"};
-    size_t i;
-
     if (!startup || !public_key || !public_key_length || !crc_values)
         return 0;
-    chars = GetModuleFileNameA(NULL, executable, sizeof executable);
+
+    char executable[MAX_PATH];
+    DWORD chars = GetModuleFileNameA(nullptr, executable, sizeof executable);
     if (!chars || chars >= sizeof executable)
         return 0;
-    slash = strrchr(executable, '\\');
+    char *slash = std::strrchr(executable, '\\');
     if (!slash)
         return 0;
     *slash = '\0';
-    if ((size_t)snprintf(directory, sizeof directory, "%s\\GameGuard", executable) >=
-            sizeof directory ||
-        (size_t)snprintf(filename, sizeof filename, "%s.ini", startup->game_name) >=
-            sizeof filename ||
-        (size_t)snprintf(path, sizeof path, "%s\\%s", directory, filename) >= sizeof path)
+
+    char directory[MAX_PATH], filename[GG_MAX_GAME_NAME + 5u], path[MAX_PATH];
+    if (static_cast<size_t>(std::snprintf(directory, sizeof directory, "%s\\GameGuard",
+                                          executable)) >= sizeof directory ||
+        static_cast<size_t>(std::snprintf(filename, sizeof filename, "%s.ini",
+                                          startup->game_name)) >= sizeof filename ||
+        static_cast<size_t>(std::snprintf(path, sizeof path, "%s\\%s", directory, filename)) >=
+            sizeof path)
         return 0;
-    file = read_file(path, &length);
-    if (!file || length > 65536u)
-        goto done;
-    plain = (uint8_t *)malloc(length);
-    if (!plain ||
-        !gg_read_signed_ini(file, length, filename, public_key, public_key_length, plain, length,
-                            &plain_length) ||
-        !gg_parse_config(plain, plain_length, &config) ||
-        _stricmp(config.game_name, startup->game_name) || !config.no_update)
-        goto done;
-    verified_crc[0] = gg_crc32(file, length);
-    SecureZeroMemory(plain, length);
-    free(plain);
-    plain = NULL;
-    free(file);
-    file = NULL;
-    if ((size_t)snprintf(path, sizeof path, "%s\\GameMon.des", directory) >= sizeof path)
-        goto done;
-    file = read_file(path, &length);
-    if (!file)
-        goto done;
-    if (!gg_validate_monitor(file, length, expected_monitor_crc, public_key, public_key_length))
-        goto done;
-    verified_crc[1] = gg_crc32(file, length);
-    free(file);
-    file = NULL;
-    for (i = 0; i < sizeof modules / sizeof modules[0]; ++i) {
-        if ((size_t)snprintf(path, sizeof path, "%s\\%s", directory, modules[i]) >= sizeof path)
-            goto done;
-        file = read_file(path, &length);
-        if (!file || !gg_verify_signature(file, length, modules[i], public_key, public_key_length))
-            goto done;
-        verified_crc[i + 2] = gg_crc32(file, length);
-        free(file);
-        file = NULL;
+
+    uint32_t verified_crc[4];
+
+    // Signed, encrypted INI for the configured identity.
+    {
+        const std::vector<uint8_t> file = read_file(path);
+        if (file.empty() || file.size() > 65536u)
+            return 0;
+        std::vector<uint8_t> plain(file.size());
+        size_t plain_length = 0;
+        gg_config config;
+        const bool ok =
+            gg_read_signed_ini(file.data(), file.size(), filename, public_key, public_key_length,
+                               plain.data(), plain.size(), &plain_length) &&
+            gg_parse_config(plain.data(), plain_length, &config) &&
+            !_stricmp(config.game_name, startup->game_name) && config.no_update;
+        SecureZeroMemory(plain.data(), plain.size());
+        if (!ok)
+            return 0;
+        verified_crc[0] = gg_crc32(file.data(), file.size());
     }
-    memcpy(crc_values, verified_crc, sizeof verified_crc);
-    result = 1;
-done:
-    if (plain) {
-        SecureZeroMemory(plain, length);
-        free(plain);
+
+    // Signed monitor measured against the CRC embedded in this helper's image.
+    {
+        if (static_cast<size_t>(std::snprintf(path, sizeof path, "%s\\GameMon.des", directory)) >=
+            sizeof path)
+            return 0;
+        const std::vector<uint8_t> file = read_file(path);
+        if (file.empty() || !gg_validate_monitor(file.data(), file.size(), expected_monitor_crc,
+                                                 public_key, public_key_length))
+            return 0;
+        verified_crc[1] = gg_crc32(file.data(), file.size());
     }
-    free(file);
-    return result;
+
+    // Remaining signed modules.
+    static const char *const modules[] = {"ggscan.des", "npggNT.des"};
+    for (size_t i = 0; i < sizeof modules / sizeof modules[0]; ++i) {
+        if (static_cast<size_t>(
+                std::snprintf(path, sizeof path, "%s\\%s", directory, modules[i])) >= sizeof path)
+            return 0;
+        const std::vector<uint8_t> file = read_file(path);
+        if (file.empty() || !gg_verify_signature(file.data(), file.size(), modules[i], public_key,
+                                                 public_key_length))
+            return 0;
+        verified_crc[i + 2] = gg_crc32(file.data(), file.size());
+    }
+
+    std::memcpy(crc_values, verified_crc, sizeof verified_crc);
+    return 1;
 }

@@ -1,48 +1,44 @@
-#define WIN32_LEAN_AND_MEAN
 #include "gg_contract.h"
-#include <windows.h>
-#include <wincrypt.h>
+#include "gg_raii.h"
 
-static unsigned char ascii_lower(unsigned char c) {
-    return c >= 'A' && c <= 'Z' ? (unsigned char)(c + ('a' - 'A')) : c;
+#include <cstddef>
+
+namespace {
+
+unsigned char ascii_lower(unsigned char c) {
+    return c >= 'A' && c <= 'Z' ? static_cast<unsigned char>(c + ('a' - 'A')) : c;
 }
+
+} // namespace
 
 int gg_verify_signature(const uint8_t *data, size_t length, const char *expected_name,
                         const uint8_t *public_blob, size_t public_blob_length) {
-    gg_footer f;
-    size_t i;
-    HCRYPTPROV provider = 0;
-    HCRYPTKEY key = 0;
-    HCRYPTHASH hash = 0;
-    int ok = 0;
+    gg_footer footer;
     if (!expected_name || !public_blob || public_blob_length > MAXDWORD ||
-        !gg_parse_footer(data, length, &f) || f.signed_length > MAXDWORD)
+        !gg_parse_footer(data, length, &footer) || footer.signed_length > MAXDWORD)
         return 0;
-    for (i = 0; i + 1 < f.name_length; ++i) {
-        if (!expected_name[i] ||
-            ascii_lower((unsigned char)expected_name[i]) != ascii_lower(data[f.name_offset + i]))
+
+    std::size_t i = 0;
+    for (; i + 1 < footer.name_length; ++i) {
+        if (!expected_name[i] || ascii_lower(static_cast<unsigned char>(expected_name[i])) !=
+                                     ascii_lower(data[footer.name_offset + i]))
             return 0;
     }
     if (expected_name[i])
         return 0;
-    if (!CryptAcquireContextW(&provider, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
-        goto done;
-    if (!CryptImportKey(provider, public_blob, (DWORD)public_blob_length, 0, 0, &key))
-        goto done;
-    if (!CryptCreateHash(provider, CALG_MD5, 0, 0, &hash))
-        goto done;
-    if (!CryptHashData(hash, data, (DWORD)f.signed_length, 0))
-        goto done;
-    ok = CryptVerifySignatureA(hash, data + f.signature_offset, (DWORD)f.signature_length, key,
-                               NULL, 0)
-             ? 1
-             : 0;
-done:
-    if (hash)
-        CryptDestroyHash(hash);
-    if (key)
-        CryptDestroyKey(key);
-    if (provider)
-        CryptReleaseContext(provider, 0);
-    return ok;
+
+    gg::CryptProvider provider;
+    gg::CryptKey key;
+    gg::CryptHash hash;
+    if (!CryptAcquireContextW(provider.receive(), nullptr, nullptr, PROV_RSA_AES,
+                              CRYPT_VERIFYCONTEXT) ||
+        !CryptImportKey(provider.get(), public_blob, static_cast<DWORD>(public_blob_length), 0, 0,
+                        key.receive()) ||
+        !CryptCreateHash(provider.get(), CALG_MD5, 0, 0, hash.receive()) ||
+        !CryptHashData(hash.get(), data, static_cast<DWORD>(footer.signed_length), 0))
+        return 0;
+    return CryptVerifySignatureA(hash.get(), data + footer.signature_offset,
+                                 static_cast<DWORD>(footer.signature_length), key.get(), nullptr, 0)
+               ? 1
+               : 0;
 }
