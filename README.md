@@ -1,36 +1,42 @@
-# GameGuard interface
+# GameGuard Interface
 
-Projeto em C++17 para o executável GameGuard.des da raiz, em Windows x86.
+Implementação independente, em C++17, da interface `GameGuard.des` usada na integração entre clientes Windows x86 e o GameMon legado. O projeto fornece detecção das interfaces CSAuth1 e CSAuth2 e inicialização local sem atualização online.
 
-## Estrutura
+**Descrição para o repositório:** An open-source Windows x86 implementation of the legacy GameGuard.des integration interface, with CSAuth1 and CSAuth2 support.
 
-- `modules/root-helper`: contrato e implementação do auxiliar da raiz.
-- `docs`: contratos de integração e restrições.
-- `scripts`: compilação.
-- `.dev`: testes e capturas locais, ignorados pelo Git.
+## Escopo e compatibilidade
 
-## Estado da implementação
+- Implementa o executável `GameGuard.des` da raiz do cliente. O GameMon e os demais componentes GameGuard são fornecidos separadamente.
+- Verifica assinaturas e CRC dos arquivos locais, lê o INI assinado e criptografado e sinaliza o SDK do cliente após a inicialização.
+- Oferece variantes CSAuth1, CSAuth2 e híbrida. A híbrida detecta a família do SDK; a detecção rejeita resultados ambíguos.
+- O modo atual exige `NO_UPDATE=1` e não implementa o serviço de atualização.
+- A compatibilidade em memória do monitor é limitada ao GameMon v584 identificado no contrato técnico. O GME e o GameMon em disco não são modificados.
+- A build híbrida C++ foi testada com o cliente v584 e o servidor em modo `required`, incluindo respostas sucessivas aceitas. Outros clientes e ambientes precisam de validação própria; não há garantia de compatibilidade universal nem de proteção equivalente ao produto original.
 
-O projeto contém um detector estrutural de SDK, parser do rodapé, CRC32, verificação RSA/MD5 via CryptoAPI e decodificação do quadro de inicialização v584. A implementação experimental verifica o INI e o GameMon, valida o CRC e sinaliza o evento herdado no modo sem atualização. O SDK inicia o GameMon em processo separado. A compatibilidade de ponta a ponta ainda precisa de testes com os clientes e o servidor; **não há garantia de substituição funcional**.
+O projeto não inclui executáveis do jogo, GameMon, demais arquivos GameGuard nem chaves privadas. Esses componentes e suas respectivas licenças são independentes deste código-fonte.
 
-Requer Windows, PowerShell 7 e compilador MinGW-w64 i686; Python 3 é necessário apenas para o teste opcional de capturas. O binário do jogo e os arquivos GameGuard não integram o repositório.
+## Compilação
+
+Requisitos: Windows, PowerShell 7, MinGW-w64 i686 com suporte a C++17 e uma chave pública RSA de 512 bits em formato PEM.
 
 ```bat
-compilar.bat
-scripts\lint.cmd
-.dev\test.cmd
+set "CXX=C:\caminho\para\i686-w64-mingw32-g++.exe"
+set "GG_PUBLIC_KEY=C:\caminho\para\chave_publica.pem"
+compilar.bat all
 ```
 
-`CXX` pode apontar para `i686-w64-mingw32-g++.exe`; sem `CXX`, os scripts usam `g++.exe` no PATH. O runtime C++ é incorporado estaticamente (`-static`), sem dependência de DLL além do UCRT do sistema. O linter requer `clang-format` (ou `CLANG_FORMAT`) e g++ com `-fanalyzer`. A saída é gravada em `build/`. Os testes não executam imagens de clientes capturadas; `.dev/check-samples.py` lê somente suas seções `.text`.
+`compilar.bat` também oferece um menu ou aceita `csauth1`, `csauth2` e `hybrid`. As saídas são gravadas em `build/<variante>/GameGuard.des`. O compilador usa ligação estática para o runtime C++ e `-s` para remover símbolos; o executável continua dependendo do UCRT do sistema.
 
-## Variantes de compilação
+A compilação incorpora somente a chave pública. Sem `GG_PUBLIC_KEY`, o protótipo resultante rejeita a inicialização. Antes do uso, o executável precisa receber o CRC do GameMon final e ser assinado com a chave privada correspondente, por uma ferramenta compatível. Não distribua a chave privada.
 
-`compilar.bat` oferece um menu para gerar CSAuth1, CSAuth2, híbrido ou todas as variantes. Também aceita `csauth1`, `csauth2`, `hybrid` ou `all` como argumento. As saídas ficam em `build/csauth1/GameGuard.des`, `build/csauth2/GameGuard.des` e `build/hybrid/GameGuard.des`.
+## Verificação e estrutura
 
-O detector das variantes individuais rejeita a outra família; a híbrida aceita as duas. A detecção continua recusando resultados ambíguos. Estas opções selecionam a família aceita pelo detector; sua compatibilidade em execução ainda precisa ser validada.
+`scripts\lint.cmd` executa as verificações de formatação e análise; requer `clang-format` e g++ com suporte a `-fanalyzer`. Os testes locais ficam em `.dev`, ignorada pelo Git; podem depender de arquivos e ferramentas disponíveis apenas no ambiente de desenvolvimento.
 
-## Chave pública
+- `modules/root-helper`: implementação e contratos da interface.
+- `docs`: documentação técnica e contratos de integração.
+- `scripts`: scripts de compilação e verificação.
 
-Defina `GG_PUBLIC_KEY` com o caminho de uma chave pública RSA de 512 bits em PEM antes de compilar. O script incorpora somente a chave pública ao executável; a chave privada não é utilizada na compilação. Sem essa variável, a compilação gera um protótipo sem chave que rejeita a inicialização. A versão compilada precisa receber o CRC e a assinatura por meio do assinador compatível antes de ser usada pelo SDK.
+## Licença
 
-O auxiliar aplica compatibilidade em memória somente ao GameMon v584 identificado no contrato técnico e remove o vínculo de depuração do processo pai quando necessário. O GME e o GameMon em disco não são modificados.
+Este código-fonte é distribuído sob a **GNU Affero General Public License, versão 3** (SPDX: `AGPL-3.0-only`). O texto completo está em [LICENSE](LICENSE).
